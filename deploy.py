@@ -81,67 +81,65 @@ class connectDB(object):
         else:
             return None
 
-
-arguments = argparse.ArgumentParser()  
-arguments.add_argument("-u","--user",nargs="?",help="username to login to the cron server",required=True)
-group = arguments.add_mutually_exclusive_group()
-group.add_argument("-dpl","--dplist", nargs="?",help="Comma sperated DP list")
-group.add_argument("-dol","--dolist", nargs="?",help="Comma sperated DO list")
-if len(sys.argv) ==1:
-    arguments.print_help()
-    sys.exit(1)
-args = arguments.parse_args()
-dp_list = args.dplist
-do_list = args.dolist
-user = args.user
-passwd=getpass.getpass()
-
-
-
-
-config = configparser.ConfigParser()
-configfile=open('deploy.conf')
-config.read_file(configfile)
-onetool_db_server=config['onetool_db']['db_server']
-onetool_db_user=config['onetool_db']['db_user']
-onetool_db_passwd=config['onetool_db']['db_passwd']
-configfile.close()
-
-if do_list:
-    cron_operation_list=do_list
-    cron_operation_type='do'
-else:
-    cron_operation_list=dp_list
-    cron_operation_type='dp'
+if __name__ == "__main__":
+    arguments = argparse.ArgumentParser()  
+    arguments.add_argument("-u","--user",nargs="?",help="username to login to the cron server",required=True)
+    group = arguments.add_mutually_exclusive_group()
+    group.add_argument("-dpl","--dplist", nargs="?",help="Comma sperated DP list")
+    group.add_argument("-dol","--dolist", nargs="?",help="Comma sperated DO list")
+    if len(sys.argv) ==1:
+        arguments.print_help()
+        sys.exit(1)
+    args = arguments.parse_args()
+    dp_list = args.dplist
+    do_list = args.dolist
+    user = args.user
+    passwd=getpass.getpass('The '+user+' password for the cron server login: ')
     
-for cron_operation_item in cron_operation_list.split(','):
-    db_conn=connectDB(onetool_db_server,onetool_db_user,onetool_db_passwd)
-    cronDOs=db_conn.getdoinfo(cron_operation_type,cron_operation_item)
-    if cronDOs is not None:
-        for cronDOline in range(len(cronDOs)):
-            #print(cronDOs[cronDOline])
-            cron_DPid=cronDOs[cronDOline][0]
-            cron_DOid=cronDOs[cronDOline][1]
-            cron_name=cronDOs[cronDOline][2]
-            cron_rpm=cronDOs[cronDOline][3]
-            cron_location=cronDOs[cronDOline][4]
-            zip_location=cronDOs[cronDOline][5]
-            cron_server=cronDOs[cronDOline][6]
-            cron_full_path=cron_location+cron_rpm
-            print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server)
-            sshlogin=ssh_server(cron_server,user,passwd)
-            #cmd='rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_full_path+'||rpm -ivh '+cron_full_path
-            print(cron_DPid,cron_DOid,cron_name,cron_rpm,cron_full_path,zip_location)
-            cmd1='ls /mntd'
-            cmdresult=sshlogin.run_cmd(cmd1)
-            if cmdresult[0]:
-                print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+' successfully')
-                print(cmdresult[1])
-            else:
-                print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+' failed')
-                print(cmdresult[1])
-
-            #print(cmdresult)
-            sshlogin.loginoff()
+    
+    config = configparser.ConfigParser()
+    configfile=open('deploy.conf')
+    config.read_file(configfile)
+    onetool_db_server=config['onetool_db']['db_server']
+    onetool_db_user=config['onetool_db']['db_user']
+    onetool_db_passwd=config['onetool_db']['db_passwd']
+    configfile.close()
+    
+    if do_list:
+        cron_operation_list=do_list
+        cron_operation_type='do'
     else:
-        print(cron_operation_item+" is already deployed or is a old type cron")
+        cron_operation_list=dp_list
+        cron_operation_type='dp'
+        
+    for cron_operation_item in cron_operation_list.split(','):
+        db_conn=connectDB(onetool_db_server,onetool_db_user,onetool_db_passwd)
+        cronDOs=db_conn.getdoinfo(cron_operation_type,cron_operation_item)
+        if cronDOs is not None:
+            for cronDOline in range(len(cronDOs)):
+                #print(cronDOs[cronDOline])
+                cron_DPid=cronDOs[cronDOline][0]
+                cron_DOid=cronDOs[cronDOline][1]
+                cron_name=cronDOs[cronDOline][2]
+                cron_rpm=cronDOs[cronDOline][3]
+                cron_location=cronDOs[cronDOline][4]
+                zip_location=cronDOs[cronDOline][5]
+                cron_server=cronDOs[cronDOline][6]
+                cron_full_path=cron_location+cron_rpm
+                print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server)
+                sshlogin=ssh_server(cron_server,user,passwd)
+                #cmd='rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_full_path+'||rpm -ivh '+cron_full_path
+                print(cron_DPid,cron_DOid,cron_name,cron_rpm,cron_full_path,zip_location)
+                cmd1='ls /mntd'
+                cmdresult=sshlogin.run_cmd(cmd1)
+                if cmdresult[0]:
+                    print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+' successfully')
+                    print(cmdresult[1])
+                else:
+                    print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+' failed')
+                    print(cmdresult[1])
+    
+                #print(cmdresult)
+                sshlogin.loginoff()
+        else:
+            print(cron_operation_item+" is already deployed or is a old type cron")
