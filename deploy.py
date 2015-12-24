@@ -86,6 +86,7 @@ class connectDB(object):
 if __name__ == "__main__":
     arguments = argparse.ArgumentParser()  
     arguments.add_argument("-u","--user",nargs="?",help="username to login to the cron server",required=True)
+    arguments.add_argument("-c","--config",nargs="?",help="DB config file",required=True)
     group = arguments.add_mutually_exclusive_group()
     group.add_argument("-dpl","--dplist", nargs="?",help="Comma sperated DP list")
     group.add_argument("-dol","--dolist", nargs="?",help="Comma sperated DO list")
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     
     
     config = configparser.ConfigParser()
-    configfile=open('deploy.conf')
+    configfile=open(args.config)
     config.read_file(configfile)
     onetool_db_server=config['onetool_db']['db_server']
     onetool_db_user=config['onetool_db']['db_user']
