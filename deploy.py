@@ -165,7 +165,7 @@ if __name__ == "__main__":
                         print('excute '+cmd+' failed\n')
                         print(cmdresult[1])
     
-                print(cmdresult)
+                #print(cmdresult)
                 sshlogin.loginoff()
         else:
             print(cron_operation_item+" is already deployed or is a old type cron")
