@@ -88,6 +88,7 @@ if __name__ == "__main__":
     arguments = argparse.ArgumentParser()  
     arguments.add_argument("-u","--user",nargs="?",help="username to login to the cron server",required=True)
     arguments.add_argument("-c","--config",nargs="?",help="DB config file",required=True)
+    arguments.add_argument("-i","--install_type",nargs="?",choices=['zip','rpm'],help="installation type zip or rpm",required=True)
     group = arguments.add_mutually_exclusive_group()
     group.add_argument("-dpl","--dplist", nargs="?",help="Comma sperated DP list")
     group.add_argument("-dol","--dolist", nargs="?",help="Comma sperated DO list")
@@ -144,11 +145,18 @@ if __name__ == "__main__":
                 chmod_cmd='su - '+cron_acct+' -c " chmod -R +x '+cron_mainshell_home+'*.sh "'
                 dos2unix_cmd='su - '+cron_acct+' -c "dos2unix '+cron_mainshell_home+'* "'
                 #print(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
-                cmds=(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
+                zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
+                rpm_install_cmds=('rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_rpm_full_path+'||rpm -ivh '+cron_rpm_full_path,)
+
+                if args.install_type.strip()=='zip':
+                    cmds=zip_install_cmds
+                else:
+                    cmds=rpm_install_cmds
 
                 print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
                 sshlogin=ssh_server(cron_server,user,passwd)
-                #cmd='rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_full_path+'||rpm -ivh '+cron_full_path
+                
+
                 print(cron_DPid,cron_DOid,cron_name,cron_acct,cron_mainshell,cron_zip_remote,cron_zip_local,cron_rpm_full_path)
                 cmd1='ls /mntd'
                 cmdresult=sshlogin.run_cmd(cmd1)

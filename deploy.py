@@ -61,7 +61,7 @@ class connectDB(object):
         if self.idNUmbertype == 'dp':
             self.query_sql=('''SELECT d.deploy_plan_id,d.id AS 'do_id',l.download_link,cron.id AS 'cron_id', REPLACE(cron.name," ","_")  AS 'cron_name',tc.deploy_path,t.new_version,cs.domain_name,cs.server_ip,c.name AS 'localtion' FROM itt_cron_do d INNER JOIN itt_cron_do_template t ON d.id=t.cron_do_id INNER JOIN itt_template_cpt cpt ON cpt.template_id = t.template_id INNER JOIN ube_package_link l ON l.plan_id = d.deploy_plan_id AND l.template_id = t.template_id  AND l.component_id = cpt.id AND l.build_file_version = t.new_version  INNER JOIN itt_template_cron tc ON tc.template_id = t.template_id INNER JOIN itt_cron cron ON cron.id = tc.cron_id INNER JOIN itt_template_cpt_ts ts ON cpt.id = ts.component_id INNER JOIN itt_cron_server cs ON ts.target_server_id = cs.id LEFT JOIN itt_country c ON cs.country_id = c.id WHERE  d.status = 800  AND d.is_used=1 AND  d.deploy_plan_id='''+self.idNUmber)
         else:
-            self.query_sql=(''' SELECT d.deploy_plan_id,d.id AS 'do_id',l.download_link,cron.id AS 'cron_id', REPLACE(cron.name," ","_")  AS 'cron_name',tc.deploy_path,t.new_version,cs.domain_name,cs.server_ip,c.name AS 'localtion' FROM itt_cron_do d INNER JOIN itt_cron_do_template t ON d.id=t.cron_do_id INNER JOIN itt_template_cpt cpt ON cpt.template_id = t.template_id INNER JOIN ube_package_link l ON l.plan_id = d.deploy_plan_id AND l.template_id = t.template_id AND l.component_id = cpt.id AND l.build_file_version = t.new_version  INNER JOIN itt_template_cron tc ON tc.template_id = t.template_id INNER JOIN itt_cron cron ON cron.id = tc.cron_id INNER JOIN itt_template_cpt_ts ts ON cpt.id = ts.component_id INNER JOIN itt_cron_server cs ON ts.target_server_id = cs.id LEFT JOIN itt_country c ON cs.country_id = c.id WHERE d.status=800 AND  d.is_used=1 AND  d.id = '''+self.idNUmber)
+            self.query_sql=(''' SELECT d.deploy_plan_id,d.id AS 'do_id',l.download_link,cron.id AS 'cron_id', REPLACE(cron.name," ","_")  AS 'cron_name',tc.deploy_path,t.new_version,cs.domain_name,cs.server_ip,c.name AS 'localtion' FROM itt_cron_do d INNER JOIN itt_cron_do_template t ON d.id=t.cron_do_id INNER JOIN itt_template_cpt cpt ON cpt.template_id = t.template_id INNER JOIN ube_package_link l ON l.plan_id = d.deploy_plan_id AND l.template_id = t.template_id AND l.component_id = cpt.id AND l.build_file_version = t.new_version  INNER JOIN itt_template_cron tc ON tc.template_id = t.template_id INNER JOIN itt_cron cron ON cron.id = tc.cron_id INNER JOIN itt_template_cpt_ts ts ON cpt.id = ts.component_id INNER JOIN itt_cron_server cs ON ts.target_server_id = cs.id LEFT JOIN itt_country c ON cs.country_id = c.id WHERE d.is_used=1 AND  d.id = '''+self.idNUmber)
         self.cursor.execute(self.query_sql)
         data=self.cursor.fetchall()
         self.data_result=[]
@@ -87,6 +87,7 @@ if __name__ == "__main__":
     arguments = argparse.ArgumentParser()  
     arguments.add_argument("-u","--user",nargs="?",help="username to login to the cron server",required=True)
     arguments.add_argument("-c","--config",nargs="?",help="DB config file",required=True)
+    arguments.add_argument("-i","--install_type",nargs="?",choices=['zip','rpm'],help="installation type zip or rpm",required=True)
     group = arguments.add_mutually_exclusive_group()
     group.add_argument("-dpl","--dplist", nargs="?",help="Comma sperated DP list")
     group.add_argument("-dol","--dolist", nargs="?",help="Comma sperated DO list")
@@ -143,21 +144,27 @@ if __name__ == "__main__":
                 chmod_cmd='su - '+cron_acct+' -c " chmod -R +x '+cron_mainshell_home+'*.sh "'
                 dos2unix_cmd='su - '+cron_acct+' -c "dos2unix '+cron_mainshell_home+'* "'
                 #print(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
-                cmds=(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
+                zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
+                rpm_install_cmds=('rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_rpm_full_path+'||rpm -ivh '+cron_rpm_full_path,)
+
+                if args.install_type.strip()=='zip':
+                    cmds=zip_install_cmds
+                else:
+                    cmds=rpm_install_cmds
 
                 print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
                 sshlogin=ssh_server(cron_server,user,passwd)
-                #cmd='rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_full_path+'||rpm -ivh '+cron_full_path
                 
                 #print(cron_DPid,cron_DOid,cron_name,cron_acct,cron_mainshell,cron_zip_remote,cron_zip_local,cron_rpm_full_path)
-                #for cmd in cmds:
-                #    cmdresult=sshlogin.run_cmd(cmd)
-                #    if cmdresult[0]:
-                #        print('excute '+cmd+' successfully\n')
-                #        print(cmdresult[1])
-                #    else:
-                #        print('excute '+cmd+' failed\n')
-                #        print(cmdresult[1])
+                for cmd in cmds:
+                    print(cmd)
+                    #cmdresult=sshlogin.run_cmd(cmd)
+                    #if cmdresult[0]:
+                    #    print('excute '+cmd+' successfully\n')
+                    #    print(cmdresult[1])
+                    #else:
+                    #    print('excute '+cmd+' failed\n')
+                    #    print(cmdresult[1])
     
                 #print(cmdresult)
                 sshlogin.loginoff()
