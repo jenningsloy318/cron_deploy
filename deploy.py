@@ -61,7 +61,7 @@ class connectDB(object):
         if self.idNUmbertype == 'dp':
             self.query_sql=('''SELECT d.deploy_plan_id,d.id AS 'do_id',l.download_link,cron.id AS 'cron_id', REPLACE(cron.name," ","_")  AS 'cron_name',tc.deploy_path,t.new_version,cs.domain_name,cs.server_ip,c.name AS 'localtion' FROM itt_cron_do d INNER JOIN itt_cron_do_template t ON d.id=t.cron_do_id INNER JOIN itt_template_cpt cpt ON cpt.template_id = t.template_id INNER JOIN ube_package_link l ON l.plan_id = d.deploy_plan_id AND l.template_id = t.template_id  AND l.component_id = cpt.id AND l.build_file_version = t.new_version  INNER JOIN itt_template_cron tc ON tc.template_id = t.template_id INNER JOIN itt_cron cron ON cron.id = tc.cron_id INNER JOIN itt_template_cpt_ts ts ON cpt.id = ts.component_id INNER JOIN itt_cron_server cs ON ts.target_server_id = cs.id LEFT JOIN itt_country c ON cs.country_id = c.id WHERE  d.status = 800  AND d.is_used=1 AND  d.deploy_plan_id='''+self.idNUmber)
         else:
-            self.query_sql=(''' SELECT d.deploy_plan_id,d.id AS 'do_id',l.download_link,cron.id AS 'cron_id', REPLACE(cron.name," ","_")  AS 'cron_name',tc.deploy_path,t.new_version,cs.domain_name,cs.server_ip,c.name AS 'localtion' FROM itt_cron_do d INNER JOIN itt_cron_do_template t ON d.id=t.cron_do_id INNER JOIN itt_template_cpt cpt ON cpt.template_id = t.template_id INNER JOIN ube_package_link l ON l.plan_id = d.deploy_plan_id AND l.template_id = t.template_id AND l.component_id = cpt.id AND l.build_file_version = t.new_version  INNER JOIN itt_template_cron tc ON tc.template_id = t.template_id INNER JOIN itt_cron cron ON cron.id = tc.cron_id INNER JOIN itt_template_cpt_ts ts ON cpt.id = ts.component_id INNER JOIN itt_cron_server cs ON ts.target_server_id = cs.id LEFT JOIN itt_country c ON cs.country_id = c.id WHERE d.is_used=1 AND  d.id = '''+self.idNUmber)
+            self.query_sql=(''' SELECT d.deploy_plan_id,d.id AS 'do_id',l.download_link,cron.id AS 'cron_id', REPLACE(cron.name," ","_")  AS 'cron_name',tc.deploy_path,t.new_version,cs.domain_name,cs.server_ip,c.name AS 'localtion' FROM itt_cron_do d INNER JOIN itt_cron_do_template t ON d.id=t.cron_do_id INNER JOIN itt_template_cpt cpt ON cpt.template_id = t.template_id INNER JOIN ube_package_link l ON l.plan_id = d.deploy_plan_id AND l.template_id = t.template_id AND l.component_id = cpt.id AND l.build_file_version = t.new_version  INNER JOIN itt_template_cron tc ON tc.template_id = t.template_id INNER JOIN itt_cron cron ON cron.id = tc.cron_id INNER JOIN itt_template_cpt_ts ts ON cpt.id = ts.component_id INNER JOIN itt_cron_server cs ON ts.target_server_id = cs.id LEFT JOIN itt_country c ON cs.country_id = c.id WHERE d.status=800 AND d.is_used=1 AND  d.id = '''+self.idNUmber)
         self.cursor.execute(self.query_sql)
         data=self.cursor.fetchall()
         self.data_result=[]
@@ -157,16 +157,15 @@ if __name__ == "__main__":
                 
                 #print(cron_DPid,cron_DOid,cron_name,cron_acct,cron_mainshell,cron_zip_remote,cron_zip_local,cron_rpm_full_path)
                 for cmd in cmds:
-                    print(cmd)
-                    #cmdresult=sshlogin.run_cmd(cmd)
-                    #if cmdresult[0]:
-                    #    print('excute '+cmd+' successfully\n')
-                    #    print(cmdresult[1])
-                    #else:
-                    #    print('excute '+cmd+' failed\n')
-                    #    print(cmdresult[1])
+                    cmdresult=sshlogin.run_cmd(cmd)
+                    if cmdresult[0]:
+                        print('excute '+cmd+' successfully\n')
+                        print(cmdresult[1])
+                    else:
+                        print('excute '+cmd+' failed\n')
+                        print(cmdresult[1])
     
-                #print(cmdresult)
+                print(cmdresult)
                 sshlogin.loginoff()
         else:
             print(cron_operation_item+" is already deployed or is a old type cron")
