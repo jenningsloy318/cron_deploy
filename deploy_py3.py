@@ -141,9 +141,9 @@ if __name__ == "__main__":
                 cron_acct=cron_mainshell.split('/')[2]
                 mkdir_cmd='su - '+cron_acct+' -c "mkdir -p '+cron_zip_home+'"'
                 wget_cmd='su - '+cron_acct+' -c "wget '+cron_zip_remote+' -O '+cron_zip_local+'"'
-                unzip_cmmd='su - '+cron_acct+' -c "cd '+cron_zip_home+'&& unzip -o '+cron_zip_name+'"'
-                chmod_cmd='su - '+cron_acct+' -c " chmod -R +x '+cron_mainshell_home+'*.sh "'
-                dos2unix_cmd='su - '+cron_acct+' -c "dos2unix '+cron_mainshell_home+'* "'
+                unzip_cmmd='su - '+cron_acct+' -c "cd '+cron_zip_home+' && unzip -o '+cron_zip_name+'"'
+                chmod_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -name "*.sh" |xargs chmod +x"'
+                dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f | xargs dos2unix  "'
                 #print(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
                 zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
                 rpm_install_cmds=('rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_rpm_full_path+'||rpm -ivh '+cron_rpm_full_path,)
