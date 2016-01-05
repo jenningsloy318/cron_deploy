@@ -83,6 +83,30 @@ class connectDB(object):
             return self.data_result
         else:
             return None
+    def get_cvs_list(self,donumber):
+        self.donumber=donumber
+        self.query_sql=('''select a.cron_do_id as 'cron_do_id',d.domain_name  AS 'cron_server' ,CONCAT(b.download_cmd,' ',a.new_version,' ',a.file_path) cvs_url, a.file_path AS 'cvs_file_path'
+                from onetool.itt_cron_do_file a  
+                inner join onetool.itt_vcs b on a.vcs_id = b.id 
+                inner join onetool.itt_cron_do_runtime c  on a.cron_do_id=c.cron_do_id
+                inner join itt_cron_server d on d.id=c.cron_server
+                where  a.operation in ('NEW','UPDATE') and  a.cron_do_id ='''+self.donumber)
+        self.cursor=self.dbconn.cursor()
+        self.cursor.execute(self.query_sql)
+        data=self.cursor.fetchall()
+        self.data_result=[]
+        if len(data) != 0:
+            for itemid in range(len(data)):
+                self.cron_do_id=data[itemid][0]
+                self.cron_server=data[itemid][1]
+                self.cvs_full_url=data[itemid][2]
+                self.cvs_file_path=data[itemid][3]
+                self.os_file_path='/'+('/').join(data[itemid][3].split('/')[3:])
+                self.cron_do_cvs_list=(self.cron_do_id,self.cron_server,self.cvs_full_url,self.cvs_file_path,self.os_file_path)
+                self.data_result.append(self.cron_do_cvs_list)
+        
+        return self.data_result
+
 
 if __name__ == "__main__":
     arguments = argparse.ArgumentParser()  
