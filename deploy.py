@@ -48,20 +48,17 @@ class ssh_server(object):
     def loginoff(self):
         self.sshconn.close()
 class connectDB(object):
-    def __init__(self,dbserver,dbuser,dbpasswd):
+    def __init__(self,dbserver,port,db,dbuser,dbpasswd):
         self.dbserver=dbserver
         self.dbuser=dbuser
         self.dbpasswd=dbpasswd
-        self.dbconn=MySQLdb.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=3308,db='onetool')
+        self.dbport=int(port)
+        self.db=db
+        self.dbconn=MySQLdb.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=self.dbport,db=self.db)
         
-    def getdoinfo(self,idNUmbertype,idNUmber):
-        self.idNUmbertype=idNUmbertype
-        self.idNUmber=idNUmber
+    def getdoinfo(self,query_sql_base,query_id):
+        self.query_sql=query_sql_base+query_id
         self.cursor=self.dbconn.cursor()
-        if self.idNUmbertype == 'dp':
-            self.query_sql=('''SELECT d.deploy_plan_id,d.id AS 'do_id',l.download_link,cron.id AS 'cron_id', REPLACE(cron.name," ","_")  AS 'cron_name',tc.deploy_path,t.new_version,cs.domain_name,cs.server_ip,c.name AS 'localtion' FROM itt_cron_do d INNER JOIN itt_cron_do_template t ON d.id=t.cron_do_id INNER JOIN itt_template_cpt cpt ON cpt.template_id = t.template_id INNER JOIN ube_package_link l ON l.plan_id = d.deploy_plan_id AND l.template_id = t.template_id  AND l.component_id = cpt.id AND l.build_file_version = t.new_version  INNER JOIN itt_template_cron tc ON tc.template_id = t.template_id INNER JOIN itt_cron cron ON cron.id = tc.cron_id INNER JOIN itt_template_cpt_ts ts ON cpt.id = ts.component_id INNER JOIN itt_cron_server cs ON ts.target_server_id = cs.id LEFT JOIN itt_country c ON cs.country_id = c.id WHERE  d.status = 800  AND d.is_used=1 AND  d.deploy_plan_id='''+self.idNUmber)
-        else:
-            self.query_sql=(''' SELECT d.deploy_plan_id,d.id AS 'do_id',l.download_link,cron.id AS 'cron_id', REPLACE(cron.name," ","_")  AS 'cron_name',tc.deploy_path,t.new_version,cs.domain_name,cs.server_ip,c.name AS 'localtion' FROM itt_cron_do d INNER JOIN itt_cron_do_template t ON d.id=t.cron_do_id INNER JOIN itt_template_cpt cpt ON cpt.template_id = t.template_id INNER JOIN ube_package_link l ON l.plan_id = d.deploy_plan_id AND l.template_id = t.template_id AND l.component_id = cpt.id AND l.build_file_version = t.new_version  INNER JOIN itt_template_cron tc ON tc.template_id = t.template_id INNER JOIN itt_cron cron ON cron.id = tc.cron_id INNER JOIN itt_template_cpt_ts ts ON cpt.id = ts.component_id INNER JOIN itt_cron_server cs ON ts.target_server_id = cs.id LEFT JOIN itt_country c ON cs.country_id = c.id WHERE d.status=800 AND d.is_used=1 AND  d.id = '''+self.idNUmber)
         self.cursor.execute(self.query_sql)
         data=self.cursor.fetchall()
         self.data_result=[]
@@ -76,35 +73,14 @@ class connectDB(object):
                 self.rpm_remote='http://ube.synnex.org:8888/building/'+('/').join(data[itemid][2].split('/')[:-1])+'/target/rpm/'+data[itemid][4]+'/RPMS/x86_64/'
                 self.zip_remote='http://ube.synnex.org:8888/building/'+data[itemid][2]
                 self.cron_server=data[itemid][7]
-                self.cron_tuple=(self.cron_DP,self.cron_DO,self.cron_name,self.cron_mainshell,self.rpm_name,self.zip_name,self.rpm_remote,self.zip_remote,self.cron_server)
+                self.cron_account=data[itemid][10]
+                self.cron_tuple=(self.cron_DP,self.cron_DO,self.cron_name,self.cron_mainshell,self.rpm_name,self.zip_name,self.rpm_remote,self.zip_remote,self.cron_server,self.cron_account)
                 self.data_result.append(self.cron_tuple)
                 
             return self.data_result
         else:
             return None
-    def get_cvs_list(self,donumber):
-        self.donumber=donumber
-        self.query_sql=('''select a.cron_do_id as 'cron_do_id',d.domain_name  AS 'cron_server' ,CONCAT(b.download_cmd,' ',a.new_version,' ',a.file_path) cvs_url, a.file_path AS 'cvs_file_path'
-                from onetool.itt_cron_do_file a  
-                inner join onetool.itt_vcs b on a.vcs_id = b.id 
-                inner join onetool.itt_cron_do_runtime c  on a.cron_do_id=c.cron_do_id
-                inner join itt_cron_server d on d.id=c.cron_server
-                where  a.operation in ('NEW','UPDATE') and  a.cron_do_id ='''+self.donumber)
-        self.cursor=self.dbconn.cursor()
-        self.cursor.execute(self.query_sql)
-        data=self.cursor.fetchall()
-        self.data_result=[]
-        if len(data) != 0:
-            for itemid in range(len(data)):
-                self.cron_do_id=data[itemid][0]
-                self.cron_server=data[itemid][1]
-                self.cvs_full_url=data[itemid][2]
-                self.cvs_file_path=data[itemid][3]
-                self.os_file_path='/'+('/').join(data[itemid][3].split('/')[3:])
-                self.cron_do_cvs_list=(self.cron_do_id,self.cron_server,self.cvs_full_url,self.cvs_file_path,self.os_file_path)
-                self.data_result.append(self.cron_do_cvs_list)
-        
-        return self.data_result
+
 
 
 if __name__ == "__main__":
@@ -124,25 +100,35 @@ if __name__ == "__main__":
     user = args.user
     passwd=getpass.getpass('The '+user+' password for the cron server login: ')
     
-    
+    if do_list:
+        cron_deploy_list=do_list
+        cron_deploy_list_type='do'
+    else:
+        cron_deploy_list=dp_list
+        cron_deploy_list_type='dp'   
+
+
     config = configparser.ConfigParser()
     configfile=open(args.config)
     config.read_file(configfile)
     onetool_db_server=config['onetool_db']['db_server']
     onetool_db_user=config['onetool_db']['db_user']
     onetool_db_passwd=config['onetool_db']['db_passwd']
-    configfile.close()
-    
-    if do_list:
-        cron_operation_list=do_list
-        cron_operation_type='do'
+    onetool_db_port=config['onetool_db']['db_port']
+    onetool_db_database=config['onetool_db']['db_database']
+    if cron_deploy_list_type=='do':
+        query_sql_base=config['query_sql']['do_base_query_sql']
     else:
-        cron_operation_list=dp_list
-        cron_operation_type='dp'
-        
-    for cron_operation_item in cron_operation_list.split(','):
-        db_conn=connectDB(onetool_db_server,onetool_db_user,onetool_db_passwd)
-        cronDOs=db_conn.getdoinfo(cron_operation_type,cron_operation_item)
+        query_sql_base=config['query_sql']['dp_base_query_sql']
+    configfile.close()
+
+
+
+
+    for cron_deploy_item in cron_deploy_list.split(','):
+        db_conn=connectDB(onetool_db_server,onetool_db_port,onetool_db_database,onetool_db_user,onetool_db_passwd)
+        cronDOs=db_conn.getdoinfo(query_sql_base,cron_deploy_item)
+        logfile=open(cron_deploy_item+'.log','w')
         if cronDOs is not None:
             for cronDOline in range(len(cronDOs)):
                 #print(cronDOs[cronDOline])
@@ -155,20 +141,22 @@ if __name__ == "__main__":
                 cron_rpm_remote=cronDOs[cronDOline][6]
                 cron_zip_remote=cronDOs[cronDOline][7]
                 cron_server=cronDOs[cronDOline][8]
+                cron_acct=cronDOs[cronDOline][9]
                 cron_rpm_full_path=cron_rpm_remote+cron_rpm_name
                 cron_zip_home=('/').join(cron_mainshell.split('/')[:-2])+'/'
                 cron_mainshell_home=('/').join(cron_mainshell.split('/')[:-1])+'/'
                 cron_log_dir=cron_mainshell_home.replace('apps','logs')
 
                 cron_zip_local=('/').join(cron_mainshell.split('/')[:-2])+'/'+cron_zip_name
-                cron_acct=cron_mainshell.split('/')[2]
                 mkdir_cmd='su - '+cron_acct+' -c "mkdir -p '+cron_zip_home+'"'
                 wget_cmd='su - '+cron_acct+' -c "wget '+cron_zip_remote+' -O '+cron_zip_local+'"'
-                unzip_cmmd='su - '+cron_acct+' -c "cd '+cron_zip_home+' && unzip -o '+cron_zip_name+'"'
+                unzip_cmd='su - '+cron_acct+' -c "cd '+cron_zip_home+' && unzip -o '+cron_zip_name+'"'
                 chmod_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -name "*.sh" |xargs chmod +x"'
                 dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f | xargs dos2unix  "'
+                make_logdir_cmd='su - '+cron_acct+' -c " [ ! -d '+cron_log_dir+' ] && mkdir -p '+cron_log_dir+'  "'
+
                 #print(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
-                zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
+                zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmd,chmod_cmd,dos2unix_cmd,make_logdir_cmd)
                 rpm_install_cmds=('rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_rpm_full_path+'||rpm -ivh '+cron_rpm_full_path,)
 
                 if args.install_type.strip()=='zip':
@@ -177,19 +165,27 @@ if __name__ == "__main__":
                     cmds=rpm_install_cmds
 
                 print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
+                logfile.write('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
                 sshlogin=ssh_server(cron_server,user,passwd)
-                
-                #print(cron_DPid,cron_DOid,cron_name,cron_acct,cron_mainshell,cron_zip_remote,cron_zip_local,cron_rpm_full_path)
                 for cmd in cmds:
                     cmdresult=sshlogin.run_cmd(cmd)
                     if cmdresult[0]:
                         print('excute '+cmd+' successfully\n')
-                        print(cmdresult[1])
+                        logfile.write('excute '+cmd+' successfully\n')
+                        print(cmdresult[1]+'\n')
+                        logfile.write(cmd)
+                        logfile.write(cmdresult[1]+'\n')
+                        logfile.flush()
                     else:
+                        logfile.write('excute '+cmd+' failed\n')
                         print('excute '+cmd+' failed\n')
-                        print(cmdresult[1])
+                        print(cmdresult[1]+'\n')
+                        logfile.write(cmd)
+                        logfile.write(cmdresult[1]+'\n')
+                        logfile.flush()
     
                 #print(cmdresult)
                 sshlogin.loginoff()
         else:
-            print(cron_operation_item+" is already deployed or is a old type cron")
+            print(cron_deploy_item+" is already deployed or is a old type cron")
+        logfile.close()

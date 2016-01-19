@@ -57,7 +57,7 @@ class connectDB(object):
         #self.dbconn=MySQLdb.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=3308,db='onetool')
         self.dbconn=pymysql.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=self.dbport,db=self.db)
         
-    def getdoinfo(self,query_sql_base,query_id,):
+    def getdoinfo(self,query_sql_base,query_id):
         self.query_sql=query_sql_base+query_id
         self.cursor=self.dbconn.cursor()
         self.cursor.execute(self.query_sql)
