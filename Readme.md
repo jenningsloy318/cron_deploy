@@ -1,6 +1,7 @@
 Tools to deploy the crontab files
 =======================================
 >- Py2 and py3 implemention of cron deployment, support zip and rpm deploy method,need a DB config named deploy.conf.
+>- cvs deployment version of cron deployment
 
 
 ## the content of the config about DB connection:
