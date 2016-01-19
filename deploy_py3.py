@@ -59,7 +59,6 @@ class connectDB(object):
         
     def getdoinfo(self,query_sql_base,query_id,):
         self.query_sql=query_sql_base+query_id
-        print(self.query_sql)
         self.cursor=self.dbconn.cursor()
         self.cursor.execute(self.query_sql)
         data=self.cursor.fetchall()
@@ -123,9 +122,14 @@ if __name__ == "__main__":
     else:
         query_sql_base=config['query_sql']['dp_base_query_sql']
     configfile.close()
+
+
+
+
     for cron_deploy_item in cron_deploy_list.split(','):
         db_conn=connectDB(onetool_db_server,onetool_db_port,onetool_db_database,onetool_db_user,onetool_db_passwd)
         cronDOs=db_conn.getdoinfo(query_sql_base,cron_deploy_item)
+        logfile=open(cron_deploy_item+'.log','w')
         if cronDOs is not None:
             for cronDOline in range(len(cronDOs)):
                 #print(cronDOs[cronDOline])
@@ -162,19 +166,27 @@ if __name__ == "__main__":
                     cmds=rpm_install_cmds
 
                 print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
+                logfile.write('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
                 sshlogin=ssh_server(cron_server,user,passwd)
-                
-                #print(cron_DPid,cron_DOid,cron_name,cron_acct,cron_mainshell,cron_zip_remote,cron_zip_local,cron_rpm_full_path)
                 for cmd in cmds:
                     cmdresult=sshlogin.run_cmd(cmd)
                     if cmdresult[0]:
                         print('excute '+cmd+' successfully\n')
-                        print(cmdresult[1])
+                        logfile.write('excute '+cmd+' successfully\n')
+                        print(cmdresult[1]+'\n')
+                        logfile.write(cmd)
+                        logfile.write(cmdresult[1]+'\n')
+                        logfile.flush()
                     else:
+                        logfile.write('excute '+cmd+' failed\n')
                         print('excute '+cmd+' failed\n')
-                        print(cmdresult[1])
+                        print(cmdresult[1]+'\n')
+                        logfile.write(cmd)
+                        logfile.write(cmdresult[1]+'\n')
+                        logfile.flush()
     
                 #print(cmdresult)
                 sshlogin.loginoff()
         else:
             print(cron_deploy_item+" is already deployed or is a old type cron")
+        logfile.close()
