@@ -48,12 +48,14 @@ class ssh_server(object):
     def loginoff(self):
         self.sshconn.close()
 class connectDB(object):
-    def __init__(self,dbserver,dbuser,dbpasswd):
+    def __init__(self,dbserver,port,db,dbuser,dbpasswd):
         self.dbserver=dbserver
         self.dbuser=dbuser
         self.dbpasswd=dbpasswd
+        self.dbport=int(port)
+        self.db=db
         #self.dbconn=MySQLdb.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=3308,db='onetool')
-        self.dbconn=pymysql.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=3308,db='onetool')
+        self.dbconn=pymysql.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=self.dbport,db=self.db)
         
     def getdoinfo(self,query_sql_base,query_id,):
         self.query_sql=query_sql_base+query_id
@@ -114,13 +116,15 @@ if __name__ == "__main__":
     onetool_db_server=config['onetool_db']['db_server']
     onetool_db_user=config['onetool_db']['db_user']
     onetool_db_passwd=config['onetool_db']['db_passwd']
+    onetool_db_port=config['onetool_db']['db_port']
+    onetool_db_database=config['onetool_db']['db_database']
     if cron_deploy_list_type=='do':
         query_sql_base=config['query_sql']['do_base_query_sql']
     else:
         query_sql_base=config['query_sql']['dp_base_query_sql']
     configfile.close()
     for cron_deploy_item in cron_deploy_list.split(','):
-        db_conn=connectDB(onetool_db_server,onetool_db_user,onetool_db_passwd)
+        db_conn=connectDB(onetool_db_server,onetool_db_port,onetool_db_database,onetool_db_user,onetool_db_passwd)
         cronDOs=db_conn.getdoinfo(query_sql_base,cron_deploy_item)
         if cronDOs is not None:
             for cronDOline in range(len(cronDOs)):

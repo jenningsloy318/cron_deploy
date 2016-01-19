@@ -9,6 +9,8 @@ Tools to deploy the crontab files
 db_server=onetool_db_server
 db_user=onetool_db_account
 db_passwd=onetool_db_passw
+db_port = 3308
+db_database= onetool
 ```
 
 ## the content of the config about query sql 
