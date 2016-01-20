@@ -164,6 +164,7 @@ if __name__ == "__main__":
                 else:
                     cmds=rpm_install_cmds
 
+
                 print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
                 logfile.write('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
                 sshlogin=ssh_server(cron_server,user,passwd)
@@ -172,15 +173,17 @@ if __name__ == "__main__":
                     if cmdresult[0]:
                         print('excute '+cmd+' successfully\n')
                         logfile.write('excute '+cmd+' successfully\n')
+                        print(cmd)
+                        logfile.write(cmd+'\n')
                         print(cmdresult[1]+'\n')
-                        logfile.write(cmd)
                         logfile.write(cmdresult[1]+'\n')
                         logfile.flush()
                     else:
-                        logfile.write('excute '+cmd+' failed\n')
-                        print('excute '+cmd+' failed\n')
-                        print(cmdresult[1]+'\n')
-                        logfile.write(cmd)
+                        print('\033[1;31;47mexcute '+cmd+' failed\033[0m\n')
+                        logfile.write('excute command'+cmd+' failed\n')
+                        print(cmd)
+                        logfile.write(cmd+'\n')
+                        print('\033[1;31;47m'+cmdresult[1]+'\033[0m\n')
                         logfile.write(cmdresult[1]+'\n')
                         logfile.flush()
     
