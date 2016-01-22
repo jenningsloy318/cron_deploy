@@ -152,7 +152,7 @@ if __name__ == "__main__":
                 mkdir_cmd='su - '+cron_acct+' -c "mkdir -p '+cron_zip_home+'"'
                 wget_cmd='su - '+cron_acct+' -c "wget '+cron_zip_remote+' -O '+cron_zip_local+'"'
                 unzip_cmd='su - '+cron_acct+' -c "cd '+cron_zip_home+' && unzip -o '+cron_zip_name+'"'
-                chmod_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -name "*.sh" |xargs chmod +x"'
+                chmod_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -name "*.sh" -print0|xargs -0 chmod +x"'
                 dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f -print0| xargs -0 dos2unix  "'
                 make_logdir_cmd='su - '+cron_acct+' -c " [ ! -d '+cron_log_dir+' ] && mkdir -p '+cron_log_dir+'  "'
 
