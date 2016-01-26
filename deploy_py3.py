@@ -127,9 +127,11 @@ if __name__ == "__main__":
 
 
     for cron_deploy_item in cron_deploy_list.split(','):
+        logfile=open(cron_deploy_item+'.log','w')
+        print('Fetch the DO/DP %s information from database .'%cron_deploy_item)
+        logfile.write('Fetch the DO/DP %s information from database .'%cron_deploy_item)
         db_conn=connectDB(onetool_db_server,onetool_db_port,onetool_db_database,onetool_db_user,onetool_db_passwd)
         cronDOs=db_conn.getdoinfo(query_sql_base,cron_deploy_item)
-        logfile=open(cron_deploy_item+'.log','w')
         if cronDOs is not None:
             for cronDOline in range(len(cronDOs)):
                 #print(cronDOs[cronDOline])
@@ -172,19 +174,19 @@ if __name__ == "__main__":
                 for cmd in cmds:
                     cmdresult=sshlogin.run_cmd(cmd)
                     if cmdresult[0]:
-                        print('excute '+cmd+' successfully\n')
-                        logfile.write('excute '+cmd+' successfully\n')
+                        print('excute %s successfully\n'%cmd)
+                        logfile.write('excute %s successfully\n'%cmd)
                         print(cmd)
                         logfile.write(cmd+'\n')
                         print(cmdresult[1]+'\n')
                         logfile.write(cmdresult[1]+'\n')
                         logfile.flush()
                     else:
-                        print('\033[1;31;47mexcute '+cmd+' failed\033[0m\n')
-                        logfile.write('excute command'+cmd+' failed\n')
+                        print('\033[1;31;47mexcute %s failed\033[0m\n'%cmd)
+                        logfile.write('excute command %s failed\n'%cmd)
                         print(cmd)
                         logfile.write(cmd+'\n')
-                        print('\033[1;31;47m'+cmdresult[1]+'\033[0m\n')
+                        print('\033[1;31;47m %s \033[0m\n'%cmdresult[1])
                         logfile.write(cmdresult[1]+'\n')
                         logfile.flush()
     
