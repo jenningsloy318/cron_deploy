@@ -63,18 +63,18 @@ class connectDB(object):
         self.cursor.execute(self.query_sql)
         data=self.cursor.fetchall()
         self.data_result=[]
-        if len(data) != 0:
-            for itemid in range(len(data)):
-                self.cron_DP=data[itemid][0]
-                self.cron_DO=data[itemid][1]
-                self.cron_name=data[itemid][4]
-                self.cron_mainshell=data[itemid][5]
-                self.rpm_name=data[itemid][4]+'-'+str(data[itemid][3])+'-'+str(data[itemid][6])+'.x86_64.rpm'
-                self.zip_name=data[itemid][2].split('/')[-1]
-                self.rpm_remote='http://ube.synnex.org:8888/building/'+('/').join(data[itemid][2].split('/')[:-1])+'/target/rpm/'+data[itemid][4]+'/RPMS/x86_64/'
-                self.zip_remote='http://ube.synnex.org:8888/building/'+data[itemid][2]
-                self.cron_server=data[itemid][7]
-                self.cron_account=data[itemid][10]
+        if data :
+            for itemid,item in enumerate(data):
+                self.cron_DP=item[0]
+                self.cron_DO=item[1]
+                self.cron_name=item[4]
+                self.cron_mainshell=item[5]
+                self.rpm_name=item[4]+'-'+str(item[3])+'-'+str(item[6])+'.x86_64.rpm'
+                self.zip_name=item[2].split('/')[-1]
+                self.rpm_remote='http://ube.synnex.org:8888/building/'+('/').join(item[2].split('/')[:-1])+'/target/rpm/'+item[4]+'/RPMS/x86_64/'
+                self.zip_remote='http://ube.synnex.org:8888/building/'+item[2]
+                self.cron_server=item[7]
+                self.cron_account=item[10]
                 self.cron_tuple=(self.cron_DP,self.cron_DO,self.cron_name,self.cron_mainshell,self.rpm_name,self.zip_name,self.rpm_remote,self.zip_remote,self.cron_server,self.cron_account)
                 self.data_result.append(self.cron_tuple)
                 
@@ -128,23 +128,25 @@ if __name__ == "__main__":
 
     for cron_deploy_item in cron_deploy_list.split(','):
         logfile=open(cron_deploy_item+'.log','w')
-        print('Fetch the DO/DP %s information from database .'%cron_deploy_item)
+        print('Fetch the DO/DP %s information from database .\n'%cron_deploy_item)
         logfile.write('Fetch the DO/DP %s information from database .'%cron_deploy_item)
         db_conn=connectDB(onetool_db_server,onetool_db_port,onetool_db_database,onetool_db_user,onetool_db_passwd)
         cronDOs=db_conn.getdoinfo(query_sql_base,cron_deploy_item)
-        if cronDOs is not None:
-            for cronDOline in range(len(cronDOs)):
+        if cronDOs :
+            #for cronDOline in range(len(cronDOs)):
+            for cronDOlineNumber,cronDOline in enumerate(cronDOs):
                 #print(cronDOs[cronDOline])
-                cron_DPid=cronDOs[cronDOline][0]
-                cron_DOid=cronDOs[cronDOline][1]
-                cron_name=cronDOs[cronDOline][2]
-                cron_mainshell=cronDOs[cronDOline][3]
-                cron_rpm_name=cronDOs[cronDOline][4]
-                cron_zip_name=cronDOs[cronDOline][5]
-                cron_rpm_remote=cronDOs[cronDOline][6]
-                cron_zip_remote=cronDOs[cronDOline][7]
-                cron_server=cronDOs[cronDOline][8]
-                cron_acct=cronDOs[cronDOline][9]
+                print('Process the %d line :\n'%(cronDOlineNumber+1))
+                cron_DPid=cronDOline[0]
+                cron_DOid=cronDOline[1]
+                cron_name=cronDOline[2]
+                cron_mainshell=cronDOline[3]
+                cron_rpm_name=cronDOline[4]
+                cron_zip_name=cronDOline[5]
+                cron_rpm_remote=cronDOline[6]
+                cron_zip_remote=cronDOline[7]
+                cron_server=cronDOline[8]
+                cron_acct=cronDOline[9]
                 cron_rpm_full_path=cron_rpm_remote+cron_rpm_name
                 cron_zip_home=('/').join(cron_mainshell.split('/')[:-2])+'/'
                 cron_mainshell_home=('/').join(cron_mainshell.split('/')[:-1])+'/'
