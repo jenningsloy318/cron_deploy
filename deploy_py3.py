@@ -158,7 +158,7 @@ if __name__ == "__main__":
                 unzip_cmd='su - '+cron_acct+' -c "cd '+cron_zip_home+' && unzip -o '+cron_zip_name+'"'
                 chmod_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -name "*.sh" -print0|xargs -0 chmod +x"'
                 dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f -print0| xargs -0 dos2unix  "'
-                make_logdir_cmd='su - '+cron_acct+' -c " [ ! -d '+cron_log_dir+' ] && mkdir -p '+cron_log_dir+'  "'
+                make_logdir_cmd='su - '+cron_acct+' -c " [ ! -d '+cron_log_dir+' ] && mkdir -p '+cron_log_dir+'|| echo log directory already exits "'
 
                 #print(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
                 zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmd,chmod_cmd,dos2unix_cmd,make_logdir_cmd)
