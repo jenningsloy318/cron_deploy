@@ -89,6 +89,7 @@ if __name__ == "__main__":
     arguments.add_argument("-u","--user",nargs="?",help="username to login to the cron server",required=True)
     arguments.add_argument("-c","--config",nargs="?",help="DB config file",required=True)
     arguments.add_argument("-i","--install_type",nargs="?",choices=['zip','rpm'],help="installation type zip or rpm",required=True)
+    arguments.add_argument("-r",help="re-deploy again",action='store_true')
     group = arguments.add_mutually_exclusive_group()
     group.add_argument("-dpl","--dplist", nargs="?",help="Comma sperated DP list")
     group.add_argument("-dol","--dolist", nargs="?",help="Comma sperated DO list")
@@ -118,11 +119,16 @@ if __name__ == "__main__":
     onetool_db_port=config['onetool_db']['db_port']
     onetool_db_database=config['onetool_db']['db_database']
     if cron_deploy_list_type=='do':
-        query_sql_base=config['query_sql']['do_base_query_sql']
+        if args.r :
+            query_sql_base=config['query_sql']['do_base_query_sql'].replace('d.status=800 AND','')
+        else:
+            query_sql_base=config['query_sql']['do_base_query_sql']
     else:
-        query_sql_base=config['query_sql']['dp_base_query_sql']
+        if args.r:
+            query_sql_base=config['query_sql']['dp_base_query_sql'].replace('d.status=800 AND','')
+        else:
+            query_sql_base=config['query_sql']['dp_base_query_sql']
     configfile.close()
-
 
 
 
