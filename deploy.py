@@ -6,11 +6,11 @@
 import paramiko
 import subprocess
 import socket
-import MySQLdb
 import argparse
 import getpass
 import sys
 import configparser
+import pymysql
 
 class ssh_server(object):
     def __init__(self,host,user,passwd,port=22):
@@ -52,15 +52,18 @@ class connectDB(object):
         self.dbserver=dbserver
         self.dbuser=dbuser
         self.dbpasswd=dbpasswd
-        self.dbport=int(port)
+        self.dbport=port
         self.db=db
-        self.dbconn=MySQLdb.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=self.dbport,db=self.db)
+        #self.dbconn=create_engine('mysql://'+self.dbuser+':'+self.dbpasswd+'@'+self.dbserver+':'+self.dbport+'/'+self.db)
+        #self.dbconn=MySQLdb.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=3308,db='onetool')
+        self.dbconn=pymysql.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=int(self.dbport),db=self.db)
         
     def getdoinfo(self,query_sql_base,query_id):
         self.query_sql=query_sql_base+query_id
         self.cursor=self.dbconn.cursor()
         self.cursor.execute(self.query_sql)
         data=self.cursor.fetchall()
+        #data=self.dbconn.execute(self.query_sql)
         self.data_result=[]
         if data :
             for itemid,item in enumerate(data):
@@ -165,7 +168,6 @@ if __name__ == "__main__":
                 dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f -name "*.sh" -print0| xargs -0 dos2unix  "'
                 make_logdir_cmd='su - '+cron_acct+' -c " [ ! -d '+cron_log_dir+' ] && mkdir -p '+cron_log_dir+'|| echo log directory already exits "'
 
-                #print(mkdir_cmd,wget_cmd,unzip_cmmd,chmod_cmd,dos2unix_cmd)
                 zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmd,chmod_cmd,dos2unix_cmd,make_logdir_cmd)
                 rpm_install_cmds=('rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_rpm_full_path+'||rpm -ivh '+cron_rpm_full_path,)
 
@@ -173,7 +175,7 @@ if __name__ == "__main__":
                     cmds=zip_install_cmds
                 else:
                     cmds=rpm_install_cmds
-
+                #print(cmds)
 
                 print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
                 logfile.write('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
