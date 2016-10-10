@@ -177,8 +177,8 @@ if __name__ == "__main__":
                     cmds=rpm_install_cmds
                 #print(cmds)
 
-                print('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
-                logfile.write('Install cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'\n')
+                print('Deploying cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'!\n')
+                logfile.write('Deploying cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'!\n')
                 sshlogin=ssh_server(cron_server,user,passwd)
                 for cmd in cmds:
                     cmdresult=sshlogin.run_cmd(cmd)
@@ -198,9 +198,14 @@ if __name__ == "__main__":
                         print('\033[1;31;47m %s \033[0m\n'%cmdresult[1])
                         logfile.write(cmdresult[1]+'\n')
                         logfile.flush()
-    
+                print('CronDO-'+str(cron_DOid)+' : '+cron_name+' is deployed sucessfully on '+cron_server+'!\n')
+                logfile.write('CronDO-'+str(cron_DOid)+' : '+cron_name+' is deployed sucessfully on '+cron_server+'!\n')
+             
                 #print(cmdresult)
                 sshlogin.loginoff()
+            print("CronDO "+cron_deploy_item+" is deployed successfully on all target servers!\n")
+            logfile.write("CronDO "+cron_deploy_item+" is deployed successfully on all target servers!\n")
         else:
-            print(cron_deploy_item+" is already deployed or is a old type cron")
+            print("CronDo "+cron_deploy_item+" is already deployed or is a old type cron!\n")
+            logfile.write("CronDo "+cron_deploy_item+" is already deployed or is a old type cron!\n")
         logfile.close()
