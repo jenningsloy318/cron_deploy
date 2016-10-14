@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Jennings Liu@ 2015-12-03 17:26:04
 
@@ -11,6 +11,7 @@ import getpass
 import sys
 import configparser
 import pymysql
+import datetime
 
 class ssh_server(object):
     def __init__(self,host,user,passwd,port=22):
@@ -47,6 +48,8 @@ class ssh_server(object):
             return False,('').join(self.stderr.readlines()+self.stdout.readlines())
     def loginoff(self):
         self.sshconn.close()
+
+
 class connectDB(object):
     def __init__(self,dbserver,port,db,dbuser,dbpasswd):
         self.dbserver=dbserver
@@ -58,11 +61,11 @@ class connectDB(object):
         #self.dbconn=MySQLdb.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=3308,db='onetool')
         self.dbconn=pymysql.connect(user=self.dbuser,passwd=self.dbpasswd,host=self.dbserver,port=int(self.dbport),db=self.db)
         
-    def getdoinfo(self,query_sql_base,query_id):
-        self.query_sql=query_sql_base+query_id
-        self.cursor=self.dbconn.cursor()
-        self.cursor.execute(self.query_sql)
-        data=self.cursor.fetchall()
+    def getDOinfo(self,do_query_sql_base,query_id):
+        self.do_query_sql=do_query_sql_base+str(query_id)
+        self.do_cursor=self.dbconn.cursor()
+        self.do_cursor.execute(self.do_query_sql)
+        data=self.do_cursor.fetchall()
         #data=self.dbconn.execute(self.query_sql)
         self.data_result=[]
         if data :
@@ -83,6 +86,77 @@ class connectDB(object):
             return self.data_result
         else:
             return None
+    def getDPinfo(self,dp_do_query_sql_base,query_id):
+        self.dp_do_query_sql=dp_do_query_sql_base+str(query_id)
+        self.dp_do_cursor=self.dbconn.cursor()
+        self.dp_do_cursor.execute(self.dp_do_query_sql)
+        dolist=self.dp_do_cursor.fetchall()
+        if dolist:
+            return dolist
+
+
+def gen_std_cronDO_cmd(CronDO,install_type):
+    cron_DPid=cronDOline[0]
+    cron_DOid=cronDOline[1]
+    cron_name=cronDOline[2]
+    cron_mainshell=cronDOline[3]
+    cron_rpm_name=cronDOline[4]
+    cron_zip_name=cronDOline[5]
+    cron_rpm_remote=cronDOline[6]
+    cron_zip_remote=cronDOline[7]
+    cron_server=cronDOline[8]
+    cron_acct=cronDOline[9]
+    print('Generating deployment commands for cronDO %d on cron server %s :\n'%(cron_DOid,cron_server))
+
+    cron_rpm_full_path=cron_rpm_remote+cron_rpm_name
+    cron_zip_home=('/').join(cron_mainshell.split('/')[:-2])+'/'
+    cron_mainshell_home=('/').join(cron_mainshell.split('/')[:-1])+'/'
+    cron_log_dir=cron_mainshell_home.replace('apps','logs')
+
+    cron_zip_local=('/').join(cron_mainshell.split('/')[:-2])+'/'+cron_zip_name
+    mkdir_cmd='su - '+cron_acct+' -c "mkdir -p '+cron_zip_home+'"'
+    wget_cmd='su - '+cron_acct+' -c "wget '+cron_zip_remote+' -O '+cron_zip_local+'"'
+    unzip_cmd='su - '+cron_acct+' -c "cd '+cron_zip_home+' && unzip -o '+cron_zip_name+'"'
+    chmod_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -name "*.sh" -print0|xargs -0 chmod +x"'
+    dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f -name "*.sh" -print0| xargs -0 dos2unix  "'
+    make_logdir_cmd='su - '+cron_acct+' -c " [ ! -d '+cron_log_dir+' ] && mkdir -p '+cron_log_dir+'|| echo log directory already exits "'
+
+    zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmd,chmod_cmd,dos2unix_cmd,make_logdir_cmd)
+    rpm_install_cmds=('rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_rpm_full_path+'||rpm -ivh '+cron_rpm_full_path,)
+
+    if args.install_type.strip()=='zip':
+        cmds=zip_install_cmds
+    else:
+        cmds=rpm_install_cmds
+    return cmds
+
+
+def deploy_std_cronDO(cron_server,user,passwd,cmds,logfile):
+    command_status=[]
+    sshlogin=ssh_server(cron_server,user,passwd)
+    for cmdnum,cmd in enumerate(cmds):
+        cmdresult=sshlogin.run_cmd(cmd)
+        if cmdresult[0]:
+            print('excute %s successfully\n'%cmd)
+            print(cmd)
+            print(cmdresult[1]+'\n')
+            logfile.write('excute %s successfully\n'%cmd)
+            logfile.write(cmd)
+            logfile.write(cmdresult[1]+'\n')
+            command_status.append(0)
+        else:
+            print('\033[1;31;47mexcute %s failed\033[0m\n'%cmd)
+            print(cmd)
+            print('\033[1;31;47m %s \033[0m\n'%cmdresult[1])
+            logfile.write('\033[1;31;47mexcute %s failed\033[0m\n'%cmd)
+            logfile.write(cmd)
+            logfile.write('\033[1;31;47m %s \033[0m\n'%cmdresult[1])
+            command_status.append(1)
+    sshlogin.loginoff()
+    if 1 not in command_status:
+        return True
+    else:
+        return False
 
 
 
@@ -103,15 +177,15 @@ if __name__ == "__main__":
     do_list = args.dolist
     user = args.user
     passwd=getpass.getpass('The '+user+' password for the cron server login: ')
-    
+    print("\n")
     if do_list:
         cron_deploy_list=do_list
-        cron_deploy_list_type='do'
+        cron_deploy_list_type='DO'
     else:
         cron_deploy_list=dp_list
-        cron_deploy_list_type='dp'   
+        cron_deploy_list_type='DP'   
 
-
+## pre-process the config file
     config = configparser.ConfigParser()
     configfile=open(args.config)
     config.read_file(configfile)
@@ -120,92 +194,113 @@ if __name__ == "__main__":
     onetool_db_passwd=config['onetool_db']['db_passwd']
     onetool_db_port=config['onetool_db']['db_port']
     onetool_db_database=config['onetool_db']['db_database']
-    if cron_deploy_list_type=='do':
-        if args.r :
-            query_sql_base=config['query_sql']['do_base_query_sql'].replace('d.status=800 AND','')
-        else:
-            query_sql_base=config['query_sql']['do_base_query_sql']
+
+    if args.r :
+        do_query_sql_base=config['query_sql']['do_base_query_sql'].replace('d.status=800 AND','')
     else:
+        do_query_sql_base=config['query_sql']['do_base_query_sql']
+
+    if cron_deploy_list_type=='DP':
         if args.r:
-            query_sql_base=config['query_sql']['dp_base_query_sql'].replace('d.status=800 AND','')
+            dp_do_query_sql_base=config['query_sql']['dp_do_query_sql'].replace('d.status=800 AND','')
         else:
-            query_sql_base=config['query_sql']['dp_base_query_sql']
+            dp_do_query_sql_base=config['query_sql']['dp_do_query_sql']
     configfile.close()
 
 
-
+##begin to fetch cron info from DB and deploy cron DOs to target servers
     for cron_deploy_item in cron_deploy_list.split(','):
         logfile=open(cron_deploy_item+'.log','w')
-        print('Fetch the DO/DP %s information from database .\n'%cron_deploy_item)
-        logfile.write('Fetch the DO/DP %s information from database .'%cron_deploy_item)
+        print("Starting to depoy at %s.\n"%datetime.datetime.now())
+        logfile.write("Starting to depoy at %s.\n"%datetime.datetime.now())
         db_conn=connectDB(onetool_db_server,onetool_db_port,onetool_db_database,onetool_db_user,onetool_db_passwd)
-        cronDOs=db_conn.getdoinfo(query_sql_base,cron_deploy_item)
-        if cronDOs :
-            #for cronDOline in range(len(cronDOs)):
-            for cronDOlineNumber,cronDOline in enumerate(cronDOs):
-                #print(cronDOs[cronDOline])
-                print('Process the %d line :\n'%(cronDOlineNumber+1))
-                cron_DPid=cronDOline[0]
-                cron_DOid=cronDOline[1]
-                cron_name=cronDOline[2]
-                cron_mainshell=cronDOline[3]
-                cron_rpm_name=cronDOline[4]
-                cron_zip_name=cronDOline[5]
-                cron_rpm_remote=cronDOline[6]
-                cron_zip_remote=cronDOline[7]
-                cron_server=cronDOline[8]
-                cron_acct=cronDOline[9]
-                cron_rpm_full_path=cron_rpm_remote+cron_rpm_name
-                cron_zip_home=('/').join(cron_mainshell.split('/')[:-2])+'/'
-                cron_mainshell_home=('/').join(cron_mainshell.split('/')[:-1])+'/'
-                cron_log_dir=cron_mainshell_home.replace('apps','logs')
-
-                cron_zip_local=('/').join(cron_mainshell.split('/')[:-2])+'/'+cron_zip_name
-                mkdir_cmd='su - '+cron_acct+' -c "mkdir -p '+cron_zip_home+'"'
-                wget_cmd='su - '+cron_acct+' -c "wget '+cron_zip_remote+' -O '+cron_zip_local+'"'
-                unzip_cmd='su - '+cron_acct+' -c "cd '+cron_zip_home+' && unzip -o '+cron_zip_name+'"'
-                chmod_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -name "*.sh" -print0|xargs -0 chmod +x"'
-                dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f -name "*.sh" -print0| xargs -0 dos2unix  "'
-                make_logdir_cmd='su - '+cron_acct+' -c " [ ! -d '+cron_log_dir+' ] && mkdir -p '+cron_log_dir+'|| echo log directory already exits "'
-
-                zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmd,chmod_cmd,dos2unix_cmd,make_logdir_cmd)
-                rpm_install_cmds=('rpm --quiet -q '+cron_name+'&& rpm -Uvh '+cron_rpm_full_path+'||rpm -ivh '+cron_rpm_full_path,)
-
-                if args.install_type.strip()=='zip':
-                    cmds=zip_install_cmds
-                else:
-                    cmds=rpm_install_cmds
-                #print(cmds)
-
-                print('Deploying cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'!\n')
-                logfile.write('Deploying cronDP-'+str(cron_DPid)+' cronDO-'+str(cron_DOid)+' : '+cron_name+' on '+cron_server+'!\n')
-                sshlogin=ssh_server(cron_server,user,passwd)
-                for cmd in cmds:
-                    cmdresult=sshlogin.run_cmd(cmd)
-                    if cmdresult[0]:
-                        print('excute %s successfully\n'%cmd)
-                        logfile.write('excute %s successfully\n'%cmd)
-                        print(cmd)
-                        logfile.write(cmd+'\n')
-                        print(cmdresult[1]+'\n')
-                        logfile.write(cmdresult[1]+'\n')
-                        logfile.flush()
+        if cron_deploy_list_type =='DP':
+            print("Fetching DO list for DP %s !\n"%(cron_deploy_item))
+            logfile.write("Fetching DO list for DP %s !\n"%(cron_deploy_item))
+            cronDOs=db_conn.getDPinfo(dp_do_query_sql_base,cron_deploy_item)
+            for (cronDP,cronDO) in cronDOs:
+                DP_status=[]
+                print("Fetching details of DO %d !\n"%cronDO)
+                logfile.write("Fetching details of DO %d !\n"%cronDO)
+                cronDOdetails=db_conn.getDOinfo(do_query_sql_base,cronDO)
+                if cronDOdetails:
+                    DO_status=[]
+                    #for cronDOline in range(len(cronDOs)):
+                    for cronDOlineNumber,cronDOline in enumerate(cronDOdetails):
+                        cron_DPid=cronDOline[0]
+                        cron_DOid=cronDOline[1]
+                        cron_name=cronDOline[2]
+                        cron_server=cronDOline[8]
+                        print('Process %dth line of DO %d :\n'%(cronDOlineNumber+1,cronDO))
+                        logfile.write('Process %dth line of DO %d :\n'%(cronDOlineNumber+1,cronDO))
+                        cmds=gen_std_cronDO_cmd(cronDOline,args.install_type)
+                    
+                        print('Deploying cron %s(cronDP %d cronDO %d) on %s!\n'%(cron_name,cron_DPid,cron_DOid,cron_server))
+                        logfile.write('Deploying cron %s(cronDP %d cronDO %d) on %s!\n'%(cron_name,cron_DPid,cron_DOid,cron_server))
+                        if deploy_std_cronDO(cronDOline[8],user,passwd,cmds,logfile):
+                            print("CronDO %d is deployed successfully on %s server!\n"%(cron_DOid,cron_server))
+                            logfile.write("CronDO %d is deployed successfully on %s server!\n"%(cron_DOid,cron_server))
+                            DO_status.append(0)
+                        else:
+                            print("\033[1;31;47mCronDO %d is deployed failed on %s  server!\033[0m\n"%(cron_DOid,cron_server))
+                            logfile.write("CronDO %d is deployed failed on %s  server!\n"%(cron_DOid,cron_server))
+                            DO_status.append(1)
+                    if 1 not in DO_status:
+                        print("CronDO %d is successfully on all servers!\n"%cronDO)
+                        logfile.write("CronDO %d is successfully on all servers!\n"%cronDO)
+                        DP_status.append(0)
                     else:
-                        print('\033[1;31;47mexcute %s failed\033[0m\n'%cmd)
-                        logfile.write('excute command %s failed\n'%cmd)
-                        print(cmd)
-                        logfile.write(cmd+'\n')
-                        print('\033[1;31;47m %s \033[0m\n'%cmdresult[1])
-                        logfile.write(cmdresult[1]+'\n')
-                        logfile.flush()
-                print('CronDO-'+str(cron_DOid)+' : '+cron_name+' is deployed sucessfully on '+cron_server+'!\n')
-                logfile.write('CronDO-'+str(cron_DOid)+' : '+cron_name+' is deployed sucessfully on '+cron_server+'!\n')
-             
-                #print(cmdresult)
-                sshlogin.loginoff()
-            print("CronDO "+cron_deploy_item+" is deployed successfully on all target servers!\n")
-            logfile.write("CronDO "+cron_deploy_item+" is deployed successfully on all target servers!\n")
+                        print("\033[1;31;47mCronDO %d is deployed failed on some of its target  servers!\033[0m\n"%cronDO)
+                        logfile.write("CronDO %d is deployed failed on some of its target  servers!\n"%cronDO)
+                        DP_status.append(1)
+                else:
+                    print("\033[1;31;47mCronDO %d is already deployed or is a old type cron!\033[0m\n"%cronDO)
+                    logfile.write("CronDO %d is already deployed or is a old type cron!\n"%cronDO)
+            if 1 not in DP_status:
+                print("CronDP %s is  deployed successfully!\n"%cron_deploy_item)
+                logfile.write("CronDP %s is  deployed successfully!\n"%cron_deploy_item)
+
+            else:
+                print("\033[1;31;47mNot all DOs in CronDP %s are already deployed successfully!\n"%cron_deploy_item)
+                logfile.write("Not all DOs in CronDP %s are already deployed successfully!\n"%cron_deploy_item)
+        
         else:
-            print("CronDo "+cron_deploy_item+" is already deployed or is a old type cron!\n")
-            logfile.write("CronDo "+cron_deploy_item+" is already deployed or is a old type cron!\n")
-        logfile.close()
+           print("Fetching details of DO %s !\n"%cron_deploy_item)
+           logfile.write("Fetching details of DO %s !\n"%cron_deploy_item)
+           cronDOdetails=db_conn.getDOinfo(do_query_sql_base,cron_deploy_item)
+           if cronDOdetails:
+               DO_status=[]
+               #for cronDOline in range(len(cronDOs)):
+               for cronDOlineNumber,cronDOline in enumerate(cronDOdetails):
+                   cron_DPid=cronDOline[0]
+                   cron_DOid=cronDOline[1]
+                   cron_name=cronDOline[2]
+                   cron_server=cronDOline[8]
+                   print('Process  %dth line of DO %s :\n'%(cronDOlineNumber+1,cron_deploy_item))
+                   logfile.write('Process  %dth line of DO %s :\n'%(cronDOlineNumber+1,cron_deploy_item))
+                   cmds=gen_std_cronDO_cmd(cronDOline,args.install_type)
+               
+                   print('Deploying cron %s(cronDP %d cronDO %d) on %s!\n'%(cron_name,cron_DPid,cron_DOid,cron_server))
+                   logfile.write('Deploying cron %s(cronDP %d cronDO %d) on %s!\n'%(cron_name,cron_DPid,cron_DOid,cron_server))
+                   if deploy_std_cronDO(cronDOline[8],user,passwd,cmds,logfile):
+                       print("CronDO %s is deployed successfully on %s server!\n"%(cron_deploy_item,cron_server))
+                       logfile.write("CronDO %s is deployed successfully on %s server!\n"%(cron_deploy_item,cron_server))
+                       DO_status.append(0)
+                   else:
+                       print("\033[1;31;47mCronDO %s is deployed failed on %s  server!\033[0m\n"%(cron_deploy_item,cron_server))
+                       logfile.write("CronDO %s is deployed failed on %s  server!\n"%(cron_deploy_item,cron_server))
+                       DO_status.append(1)
+               if 1 not in DO_status:
+                   print("CronDO %s is successfully on all  servers!\n"%cron_deploy_item)
+                   logfile.write("CronDO %s is successfully on all  servers!\n"%cron_deploy_item)
+               else:
+                   print("\033[1;31;47mCronDO %s is deployed failed on some of its target  servers!\033[0m\n"%cron_deploy_item,)
+                   logfile.write("CronDO %s is deployed failed on some of its target  servers!\n"%cron_deploy_item)
+           else:
+               print("\033[1;31;47mCronDO %s is already deployed or is a old type cron!\033[0m\n"%cron_deploy_item)
+               logfile.write("CronDO %s is already deployed or is a old type cron!\n"%cron_deploy_item)
+        
+    
+        print("Deployment finished  at %s.\n"%datetime.datetime.now())
+        logfile.write("Deployment finished  at %s.\n"%datetime.datetime.now())
+    logfile.close()
