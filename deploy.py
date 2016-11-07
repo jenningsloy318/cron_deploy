@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Jennings Liu@ 2015-12-03 17:26:04
 
@@ -118,7 +118,7 @@ def gen_std_cronDO_cmd(CronDO,install_type):
     wget_cmd='su - '+cron_acct+' -c "wget '+cron_zip_remote+' -O '+cron_zip_local+'"'
     unzip_cmd='su - '+cron_acct+' -c "cd '+cron_zip_home+' && unzip -o '+cron_zip_name+'"'
     chmod_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -name "*.sh" -print0|xargs -0 chmod +x"'
-    dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f -name "*.sh" -print0| xargs -0 dos2unix  "'
+    dos2unix_cmd='su - '+cron_acct+' -c "find '+cron_mainshell_home+' -type f -regex  ".*.[sh|sql]" -print0| xargs -0 dos2unix  "'
     make_logdir_cmd='su - '+cron_acct+' -c " [ ! -d '+cron_log_dir+' ] && mkdir -p '+cron_log_dir+'|| echo log directory already exits "'
 
     zip_install_cmds=(mkdir_cmd,wget_cmd,unzip_cmd,chmod_cmd,dos2unix_cmd,make_logdir_cmd)
