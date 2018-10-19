@@ -76,8 +76,8 @@ class connectDB(object):
                 self.cron_mainshell=item[5]
                 self.rpm_name=item[4]+'-'+str(item[3])+'-'+str(item[6])+'.x86_64.rpm'
                 self.zip_name=item[2].split('/')[-1]
-                self.rpm_remote='http://ube.synnex.org:8888/building/'+('/').join(item[2].split('/')[:-1])+'/target/rpm/'+item[4]+'/RPMS/x86_64/'
-                self.zip_remote='http://ube.synnex.org:8888/building/'+item[2]
+                self.rpm_remote='http://ube.example.org:8888/building/'+('/').join(item[2].split('/')[:-1])+'/target/rpm/'+item[4]+'/RPMS/x86_64/'
+                self.zip_remote='http://ube.example.org:8888/building/'+item[2]
                 self.cron_server=item[7]
                 self.cron_account=item[10]
                 self.cron_tuple=(self.cron_DP,self.cron_DO,self.cron_name,self.cron_mainshell,self.rpm_name,self.zip_name,self.rpm_remote,self.zip_remote,self.cron_server,self.cron_account)
